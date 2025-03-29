@@ -2,7 +2,6 @@
 	single linked list merge
 	This problem requires you to merge two ordered singly linked lists into one ordered singly linked list
 */
-// I AM NOT DONE
 
 use std::fmt::{self, Display, Formatter};
 use std::ptr::NonNull;
@@ -69,15 +68,90 @@ impl<T> LinkedList<T> {
             },
         }
     }
-	pub fn merge(list_a:LinkedList<T>,list_b:LinkedList<T>) -> Self
-	{
-		//TODO
-		Self {
-            length: 0,
-            start: None,
-            end: None,
+    pub fn merge(list_a: LinkedList<T>, list_b: LinkedList<T>) -> Self
+    where
+        T: Ord,
+    {
+        let mut merged_list = LinkedList::new();
+        let mut a = list_a;
+        let mut b = list_b;
+
+        while let (Some(a_ptr), Some(b_ptr)) = (a.start, b.start) {
+            let a_val = unsafe { &(*a_ptr.as_ptr()).val };
+            let b_val = unsafe { &(*b_ptr.as_ptr()).val };
+
+            if a_val <= b_val {
+                // Take node from a
+                let mut node = unsafe { Box::from_raw(a_ptr.as_ptr()) };
+                let next_node = node.next;
+                a.start = next_node;
+                a.length -= 1;
+                if a.start.is_none() {
+                    a.end = None;
+                }
+                node.next = None;
+                let node_ptr = Some(unsafe { NonNull::new_unchecked(Box::into_raw(node)) });
+                merged_list.append_node(node_ptr);
+            } else {
+                // Take node from b
+                let mut node = unsafe { Box::from_raw(b_ptr.as_ptr()) };
+                let next_node = node.next;
+                b.start = next_node;
+                b.length -= 1;
+                if b.start.is_none() {
+                    b.end = None;
+                }
+                node.next = None;
+                let node_ptr = Some(unsafe { NonNull::new_unchecked(Box::into_raw(node)) });
+                merged_list.append_node(node_ptr);
+            }
         }
-	}
+
+        // Append remaining nodes from a
+        while let Some(ptr) = a.start {
+            let mut node = unsafe { Box::from_raw(ptr.as_ptr()) };
+            let next_node = node.next;
+            a.start = next_node;
+            a.length -= 1;
+            if a.start.is_none() {
+                a.end = None;
+            }
+            node.next = None;
+            let node_ptr = Some(unsafe { NonNull::new_unchecked(Box::into_raw(node)) });
+            merged_list.append_node(node_ptr);
+        }
+
+        // Append remaining nodes from b
+        while let Some(ptr) = b.start {
+            let mut node = unsafe { Box::from_raw(ptr.as_ptr()) };
+            let next_node = node.next;
+            b.start = next_node;
+            b.length -= 1;
+            if b.start.is_none() {
+                b.end = None;
+            }
+            node.next = None;
+            let node_ptr = Some(unsafe { NonNull::new_unchecked(Box::into_raw(node)) });
+            merged_list.append_node(node_ptr);
+        }
+
+        merged_list
+    }
+
+    fn append_node(&mut self, node_ptr: Option<NonNull<Node<T>>>) {
+        if let Some(ptr) = node_ptr {
+            if self.start.is_none() {
+                self.start = Some(ptr);
+                self.end = Some(ptr);
+            } else {
+                unsafe {
+                    (*self.end.unwrap().as_ptr()).next = Some(ptr);
+                }
+                self.end = Some(ptr);
+            }
+            self.length += 1;
+        }
+    }
 }
 
 impl<T> Display for LinkedList<T>
